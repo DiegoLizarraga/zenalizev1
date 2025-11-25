@@ -149,14 +149,14 @@ function buildSystemPrompt(
 
 export async function POST(request: NextRequest) {
   try {
-    const apiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
 
     if (!apiKey) {
       console.error("❌ NO HAY API KEY");
       return NextResponse.json(
-        { 
+        {
           error: "API Key no configurada",
-          message: "Por favor, agrega NEXT_PUBLIC_GROQ_API_KEY a .env.local"
+          message: "Por favor, agrega GROQ_API_KEY a .env.local"
         },
         { status: 500 }
       );
