@@ -13,7 +13,7 @@ Sistema de monitoreo de bienestar ambiental con IoT. Monitorea temperatura, hume
 docker-compose up -d --build
 ```
 
-Abre http://localhost:3000
+Abre http://localhost:3003
 
 ### Detener
 
@@ -64,14 +64,26 @@ lib/                    # Utilidades y tipos
 
 ## Variables de Entorno
 
-Copia `.env.example` a `.env.local` y configura:
+### Para Docker (Producción)
+
+Copia `.env.example` a `.env` y configura:
 
 ```env
+# Database
 DB_HOST=tu-servidor
 DB_USER=tu-usuario
 DB_PASSWORD=tu-password
 DB_NAME=tu-database
+
+# Groq API
+GROQ_API_KEY=tu-api-key-de-groq
 ```
+
+### Para Desarrollo Local
+
+Copia `.env.example` a `.env.local` y configura las mismas variables.
+
+**Nota:** El archivo `.env` es leído automáticamente por docker-compose. Nunca subas archivos `.env` o `.env.local` a Git.
 
 ---
 
