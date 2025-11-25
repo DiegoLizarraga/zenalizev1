@@ -19,15 +19,26 @@ import { useFetch } from "@/lib/hooks"
 import { AnalisisSueno } from "@/lib/types"
 
 export default function SuenoPage() {
-  const [fecha, setFecha] = useState(
-    new Date().toISOString().split("T")[0]
+  const [fecha, setFecha] = useState<string | null>(null)
+
+  // Obtener la última fecha con datos disponibles
+  const { data: ultimaFechaData } = useFetch<{ fecha: string }>(
+    "/api/sueno/ultima-fecha"
   )
 
+  // Establecer la fecha inicial cuando se obtiene la última fecha
+  useEffect(() => {
+    if (ultimaFechaData && !fecha) {
+      setFecha(ultimaFechaData.fecha)
+    }
+  }, [ultimaFechaData, fecha])
+
   const { data: analisisSueno, loading } = useFetch<AnalisisSueno>(
-    `/api/sueno/${fecha}`
+    fecha ? `/api/sueno/${fecha}` : ""
   )
 
   const cambiarFecha = (dias: number) => {
+    if (!fecha) return
     const nuevaFecha = new Date(fecha)
     nuevaFecha.setDate(nuevaFecha.getDate() + dias)
     setFecha(nuevaFecha.toISOString().split("T")[0])
@@ -56,7 +67,7 @@ export default function SuenoPage() {
     }
   }
 
-  if (loading) {
+  if (!fecha || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900">
         <div className="flex flex-col items-center space-y-4">
@@ -70,7 +81,7 @@ export default function SuenoPage() {
   if (!analisisSueno) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900">
-        <div className="text-slate-300">No hay datos disponibles</div>
+        <div className="text-slate-300">No hay datos disponibles para esta fecha</div>
       </div>
     )
   }
@@ -97,16 +108,16 @@ export default function SuenoPage() {
           </Button>
           <Button
             variant="outline"
-            onClick={() => setFecha(new Date().toISOString().split("T")[0])}
+            onClick={() => ultimaFechaData && setFecha(ultimaFechaData.fecha)}
             className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white border-0"
           >
-            Hoy
+            Más reciente
           </Button>
           <Button
             variant="outline"
             size="icon"
             onClick={() => cambiarFecha(1)}
-            disabled={fecha >= new Date().toISOString().split("T")[0]}
+            disabled={!ultimaFechaData || fecha >= ultimaFechaData.fecha}
             className="bg-slate-700/50 text-slate-300 border-slate-600 hover:bg-slate-700"
           >
             <ChevronRight className="h-4 w-4" />

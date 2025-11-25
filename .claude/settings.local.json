@@ -4,7 +4,10 @@
       "Bash(git fetch:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(git push:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker-compose ps:*)"
     ],
     "deny": [],
     "ask": []

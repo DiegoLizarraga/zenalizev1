@@ -18,15 +18,7 @@ export async function GET(
     }
 
     // Calcular rango de tiempo de sueño (22:00 del día anterior a 08:00 del día solicitado)
-    const fechaSolicitada = new Date(fecha + "T00:00:00")
-    const inicioDia = new Date(fechaSolicitada)
-    inicioDia.setDate(inicioDia.getDate() - 1)
-    inicioDia.setHours(22, 0, 0, 0)
-
-    const finDia = new Date(fechaSolicitada)
-    finDia.setHours(8, 0, 0, 0)
-
-    // Obtener datos de lecturas en el rango de sueño
+    // Usar PostgreSQL para manejar las fechas correctamente
     const result = await pool.query(`
       SELECT
         temperatura,
@@ -38,9 +30,10 @@ export async function GET(
         calidad_calculada,
         timestamp
       FROM lecturas
-      WHERE timestamp >= $1 AND timestamp <= $2
+      WHERE timestamp >= ($1::date - INTERVAL '1 day' + TIME '22:00:00')
+        AND timestamp <= ($1::date + TIME '08:00:00')
       ORDER BY timestamp ASC
-    `, [inicioDia, finDia])
+    `, [fecha])
 
     if (result.rows.length === 0) {
       return NextResponse.json(
@@ -59,8 +52,8 @@ export async function GET(
 
     const interrupciones = lecturas.filter(l => l.movimiento || l.ruido).length
 
-    // Calcular duración en horas
-    const duracion = (finDia.getTime() - inicioDia.getTime()) / (1000 * 60 * 60)
+    // Calcular duración en horas (de 22:00 a 08:00 = 10 horas)
+    const duracion = 10
 
     // Calcular calidad promedio
     const calidadPromedio = calidades.length > 0
@@ -69,19 +62,23 @@ export async function GET(
 
     // Generar timeline por hora
     const timeline: TimelineSegment[] = []
+    const fechaBase = new Date(fecha + "T00:00:00")
+
     for (let h = 22; h <= 32; h++) {
       const hour = h > 23 ? h - 24 : h
       const hourStr = `${hour.toString().padStart(2, "0")}:00`
 
-      // Buscar lecturas en esa hora
-      const horaInicio = new Date(inicioDia)
-      horaInicio.setHours(h > 23 ? h - 24 : h)
-      const horaFin = new Date(horaInicio)
-      horaFin.setHours(horaFin.getHours() + 1)
-
+      // Buscar lecturas en esa hora usando comparación de horas
       const lecturasHora = lecturas.filter(l => {
         const timestamp = new Date(l.timestamp)
-        return timestamp >= horaInicio && timestamp < horaFin
+        const tsHour = timestamp.getHours()
+
+        // Si es 22:00 o 23:00, es del día anterior
+        if (h === 22 || h === 23) {
+          return tsHour === h
+        }
+        // Si es 0-7 (madrugada del día solicitado)
+        return tsHour === hour && hour < 8
       })
 
       let condicion: "optimo" | "aceptable" | "malo" = "optimo"
