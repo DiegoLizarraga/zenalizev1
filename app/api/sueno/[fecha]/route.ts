@@ -1,55 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
+import pool from "@/lib/db"
 import { AnalisisSueno, TimelineSegment } from "@/lib/types"
-
-// Genera datos mock de análisis de sueño
-function generateMockSleepData(fecha: string): AnalisisSueno {
-  // Generar timeline (22:00 a 08:00)
-  const timeline: TimelineSegment[] = []
-  for (let h = 22; h <= 32; h++) {
-    const hour = h > 23 ? h - 24 : h
-    const hourStr = `${hour.toString().padStart(2, "0")}:00`
-
-    // Patrón: mayormente óptimo, algunas interrupciones
-    const rand = Math.random()
-    let condicion: "optimo" | "aceptable" | "malo"
-    if (rand > 0.85) {
-      condicion = "malo" // 15% malo
-    } else if (rand > 0.7) {
-      condicion = "aceptable" // 15% aceptable
-    } else {
-      condicion = "optimo" // 70% óptimo
-    }
-
-    timeline.push({ hora: hourStr, condicion })
-  }
-
-  const data: AnalisisSueno = {
-    fecha,
-    duracion: 7.5,
-    calidad: 75 + Math.random() * 15, // 75-90
-    interrupciones: Math.floor(Math.random() * 5) + 1,
-    factores: {
-      temperatura: {
-        min: 19 + Math.random() * 2,
-        max: 21 + Math.random() * 2,
-        avg: 20 + Math.random() * 1.5,
-      },
-      humedad: {
-        min: 50 + Math.random() * 5,
-        max: 60 + Math.random() * 5,
-        avg: 55 + Math.random() * 5,
-      },
-      co2: {
-        min: 400 + Math.random() * 50,
-        max: 600 + Math.random() * 100,
-        avg: 500 + Math.random() * 80,
-      },
-    },
-    timeline,
-  }
-
-  return data
-}
 
 export async function GET(
   request: NextRequest,
@@ -66,7 +17,120 @@ export async function GET(
       )
     }
 
-    const data = generateMockSleepData(fecha)
+    // Calcular rango de tiempo de sueño (22:00 del día anterior a 08:00 del día solicitado)
+    const fechaSolicitada = new Date(fecha + "T00:00:00")
+    const inicioDia = new Date(fechaSolicitada)
+    inicioDia.setDate(inicioDia.getDate() - 1)
+    inicioDia.setHours(22, 0, 0, 0)
+
+    const finDia = new Date(fechaSolicitada)
+    finDia.setHours(8, 0, 0, 0)
+
+    // Obtener datos de lecturas en el rango de sueño
+    const result = await pool.query(`
+      SELECT
+        temperatura,
+        humedad,
+        co2_estimado,
+        luz,
+        movimiento,
+        ruido,
+        calidad_calculada,
+        timestamp
+      FROM lecturas
+      WHERE timestamp >= $1 AND timestamp <= $2
+      ORDER BY timestamp ASC
+    `, [inicioDia, finDia])
+
+    if (result.rows.length === 0) {
+      return NextResponse.json(
+        { error: "No hay datos disponibles para esta fecha" },
+        { status: 404 }
+      )
+    }
+
+    const lecturas = result.rows
+
+    // Calcular estadísticas
+    const temperaturas = lecturas.map(l => parseFloat(l.temperatura))
+    const humedades = lecturas.map(l => parseFloat(l.humedad))
+    const co2s = lecturas.map(l => l.co2_estimado || 0)
+    const calidades = lecturas.filter(l => l.calidad_calculada).map(l => l.calidad_calculada)
+
+    const interrupciones = lecturas.filter(l => l.movimiento || l.ruido).length
+
+    // Calcular duración en horas
+    const duracion = (finDia.getTime() - inicioDia.getTime()) / (1000 * 60 * 60)
+
+    // Calcular calidad promedio
+    const calidadPromedio = calidades.length > 0
+      ? calidades.reduce((a, b) => a + b, 0) / calidades.length
+      : 0
+
+    // Generar timeline por hora
+    const timeline: TimelineSegment[] = []
+    for (let h = 22; h <= 32; h++) {
+      const hour = h > 23 ? h - 24 : h
+      const hourStr = `${hour.toString().padStart(2, "0")}:00`
+
+      // Buscar lecturas en esa hora
+      const horaInicio = new Date(inicioDia)
+      horaInicio.setHours(h > 23 ? h - 24 : h)
+      const horaFin = new Date(horaInicio)
+      horaFin.setHours(horaFin.getHours() + 1)
+
+      const lecturasHora = lecturas.filter(l => {
+        const timestamp = new Date(l.timestamp)
+        return timestamp >= horaInicio && timestamp < horaFin
+      })
+
+      let condicion: "optimo" | "aceptable" | "malo" = "optimo"
+
+      if (lecturasHora.length > 0) {
+        const calidadHora = lecturasHora
+          .filter(l => l.calidad_calculada)
+          .map(l => l.calidad_calculada)
+
+        if (calidadHora.length > 0) {
+          const avgCalidad = calidadHora.reduce((a, b) => a + b, 0) / calidadHora.length
+
+          if (avgCalidad >= 80) {
+            condicion = "optimo"
+          } else if (avgCalidad >= 60) {
+            condicion = "aceptable"
+          } else {
+            condicion = "malo"
+          }
+        }
+      }
+
+      timeline.push({ hora: hourStr, condicion })
+    }
+
+    const data: AnalisisSueno = {
+      fecha,
+      duracion: Math.round(duracion * 10) / 10,
+      calidad: Math.round(calidadPromedio),
+      interrupciones,
+      factores: {
+        temperatura: {
+          min: Math.min(...temperaturas),
+          max: Math.max(...temperaturas),
+          avg: temperaturas.reduce((a, b) => a + b, 0) / temperaturas.length,
+        },
+        humedad: {
+          min: Math.min(...humedades),
+          max: Math.max(...humedades),
+          avg: humedades.reduce((a, b) => a + b, 0) / humedades.length,
+        },
+        co2: {
+          min: Math.min(...co2s),
+          max: Math.max(...co2s),
+          avg: co2s.reduce((a, b) => a + b, 0) / co2s.length,
+        },
+      },
+      timeline,
+    }
 
     return NextResponse.json(data)
   } catch (error) {
