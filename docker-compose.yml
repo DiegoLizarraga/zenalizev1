@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  zenalyze:
+    build: .
+    container_name: zenalyze
+    ports:
+      - "3003:3000"
+    environment:
+      # Configuración de base de datos (editar en .env.local)
+      DB_HOST: ${DB_HOST:-78.12.149.93}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${DB_USER:-proyecto_iot}
+      DB_PASSWORD: ${DB_PASSWORD:-testing123}
+      DB_NAME: ${DB_NAME:-bienestar_db}
+      DB_SSL: ${DB_SSL:-false}
+    restart: unless-stopped

@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx shadcn@latest init -y)",
+      "Bash(mkdir:*)",
+      "Bash(npm run build)",
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(chmod:*)",
+      "Bash(git remote add:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(zip:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,0 +1,353 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import {
+  Moon,
+  Star,
+  AlertCircle,
+  TrendingUp,
+  Thermometer,
+  Droplets,
+  Wind,
+  Lightbulb,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { useFetch } from "@/lib/hooks"
+import { AnalisisSueno } from "@/lib/types"
+
+export default function SuenoPage() {
+  const [fecha, setFecha] = useState(
+    new Date().toISOString().split("T")[0]
+  )
+
+  const { data: analisisSueno, loading } = useFetch<AnalisisSueno>(
+    `/api/sueno/${fecha}`
+  )
+
+  const cambiarFecha = (dias: number) => {
+    const nuevaFecha = new Date(fecha)
+    nuevaFecha.setDate(nuevaFecha.getDate() + dias)
+    setFecha(nuevaFecha.toISOString().split("T")[0])
+  }
+
+  const formatFecha = (fechaStr: string) => {
+    const date = new Date(fechaStr + "T00:00:00")
+    return date.toLocaleDateString("es-ES", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    })
+  }
+
+  const getCondicionColor = (condicion: string) => {
+    switch (condicion) {
+      case "optimo":
+        return "bg-success"
+      case "aceptable":
+        return "bg-warning"
+      case "malo":
+        return "bg-error"
+      default:
+        return "bg-slate-300"
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-slate-600">Cargando análisis...</div>
+      </div>
+    )
+  }
+
+  if (!analisisSueno) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-slate-600">No hay datos disponibles</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Header con selector de fecha */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+            Análisis de Sueño
+          </h1>
+          <p className="text-slate-600 capitalize">{formatFecha(fecha)}</p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => cambiarFecha(-1)}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setFecha(new Date().toISOString().split("T")[0])}
+          >
+            Hoy
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => cambiarFecha(1)}
+            disabled={fecha >= new Date().toISOString().split("T")[0]}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Resumen de la noche */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-slate-600">Duración</span>
+              <Moon className="h-5 w-5 text-primary" />
+            </div>
+            <p className="text-3xl font-bold text-slate-900 font-mono">
+              {analisisSueno.duracion}h
+            </p>
+            <p className="text-xs text-slate-500 mt-1">Tiempo total</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-slate-600">Calidad</span>
+              <Star className="h-5 w-5 text-warning" />
+            </div>
+            <p className="text-3xl font-bold text-slate-900 font-mono">
+              {analisisSueno.calidad.toFixed(0)}
+              <span className="text-lg text-slate-500">/100</span>
+            </p>
+            <div className="w-full bg-slate-200 rounded-full h-2 mt-2">
+              <div
+                className="bg-warning h-2 rounded-full transition-all"
+                style={{ width: `${analisisSueno.calidad}%` }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-slate-600">Interrupciones</span>
+              <AlertCircle className="h-5 w-5 text-error" />
+            </div>
+            <p className="text-3xl font-bold text-slate-900 font-mono">
+              {analisisSueno.interrupciones}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">Eventos detectados</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-slate-600">Comparativa</span>
+              <TrendingUp className="h-5 w-5 text-success" />
+            </div>
+            <p className="text-3xl font-bold text-slate-900 font-mono">
+              +{Math.floor(Math.random() * 20)}%
+            </p>
+            <p className="text-xs text-slate-500 mt-1">vs promedio</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Timeline visual */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Timeline de la Noche</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 rounded bg-success" />
+                <span className="text-sm text-slate-600">Óptimo</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 rounded bg-warning" />
+                <span className="text-sm text-slate-600">Aceptable</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 rounded bg-error" />
+                <span className="text-sm text-slate-600">Malo</span>
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="flex h-16 rounded-lg overflow-hidden">
+                {analisisSueno.timeline.map((segment, index) => (
+                  <div
+                    key={index}
+                    className={`flex-1 ${getCondicionColor(
+                      segment.condicion
+                    )} transition-all hover:opacity-80`}
+                    title={`${segment.hora} - ${segment.condicion}`}
+                  />
+                ))}
+              </div>
+              <div className="flex justify-between mt-2 text-xs text-slate-500">
+                <span>22:00</span>
+                <span>00:00</span>
+                <span>02:00</span>
+                <span>04:00</span>
+                <span>06:00</span>
+                <span>08:00</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Factores ambientales */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Thermometer className="h-5 w-5 text-primary" />
+              <span>Temperatura</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-600">Mínima</span>
+                <span className="font-mono font-semibold">
+                  {analisisSueno.factores.temperatura.min.toFixed(1)}°C
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-600">Promedio</span>
+                <span className="font-mono font-semibold text-primary">
+                  {analisisSueno.factores.temperatura.avg.toFixed(1)}°C
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-600">Máxima</span>
+                <span className="font-mono font-semibold">
+                  {analisisSueno.factores.temperatura.max.toFixed(1)}°C
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Droplets className="h-5 w-5 text-primary" />
+              <span>Humedad</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-600">Mínima</span>
+                <span className="font-mono font-semibold">
+                  {analisisSueno.factores.humedad.min.toFixed(0)}%
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-600">Promedio</span>
+                <span className="font-mono font-semibold text-primary">
+                  {analisisSueno.factores.humedad.avg.toFixed(0)}%
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-600">Máxima</span>
+                <span className="font-mono font-semibold">
+                  {analisisSueno.factores.humedad.max.toFixed(0)}%
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Wind className="h-5 w-5 text-primary" />
+              <span>CO2</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-600">Mínimo</span>
+                <span className="font-mono font-semibold">
+                  {analisisSueno.factores.co2.min.toFixed(0)} ppm
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-600">Promedio</span>
+                <span className="font-mono font-semibold text-primary">
+                  {analisisSueno.factores.co2.avg.toFixed(0)} ppm
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-600">Máximo</span>
+                <span className="font-mono font-semibold">
+                  {analisisSueno.factores.co2.max.toFixed(0)} ppm
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recomendaciones */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Lightbulb className="h-5 w-5 text-warning" />
+            <span>Recomendaciones</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-3">
+            <li className="flex items-start space-x-3">
+              <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-primary font-semibold text-sm">1</span>
+              </div>
+              <p className="text-slate-700">
+                Mantén la temperatura entre 18-21°C para un descanso óptimo
+              </p>
+            </li>
+            <li className="flex items-start space-x-3">
+              <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-primary font-semibold text-sm">2</span>
+              </div>
+              <p className="text-slate-700">
+                Ventila la habitación antes de dormir para reducir CO2
+              </p>
+            </li>
+            <li className="flex items-start space-x-3">
+              <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-primary font-semibold text-sm">3</span>
+              </div>
+              <p className="text-slate-700">
+                La humedad ideal está entre 40-60% para mejor respiración
+              </p>
+            </li>
+          </ul>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

@@ -1,0 +1,60 @@
+/* globals.css */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+@import "tailwindcss";
+
+:root {
+  /* Paleta Zenalyze */
+  --bg-primary: #0F172A;        /* slate-900 */
+  --bg-secondary: #F8FAFC;      /* slate-50 */
+  --primary: #06B6D4;           /* cyan-500 */
+  --success: #10B981;           /* emerald-500 */
+  --warning: #F59E0B;           /* amber-500 */
+  --error: #EF4444;             /* red-500 */
+  --text-dark: #1E293B;         /* slate-800 */
+  --text-light: #F1F5F9;        /* slate-100 */
+  --border: #E2E8F0;            /* slate-200 */
+}
+
+@theme inline {
+  /* Colores personalizados Zenalyze */
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-primary: var(--primary);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-text-dark: var(--text-dark);
+  --color-text-light: var(--text-light);
+  --color-border: var(--border);
+
+  /* Tailwind defaults extendidos */
+  --color-slate-900: #0F172A;
+  --color-slate-800: #1E293B;
+  --color-slate-700: #334155; /* Añadido para bordes en tema oscuro */
+  --color-slate-200: #E2E8F0;
+  --color-slate-100: #F1F5F9;
+  --color-slate-50: #F8FAFC;
+  --color-cyan-500: #06B6D4;
+  --color-emerald-500: #10B981;
+  --color-amber-500: #F59E0B;
+  --color-red-500: #EF4444;
+}
+
+/* --- CAMBIO CLAVE AQUÍ --- */
+body {
+  background: var(--bg-primary); /* Fondo oscuro */
+  color: var(--text-light);      /* Texto claro */
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Animaciones suaves */
+* {
+  transition-duration: 200ms;
+}

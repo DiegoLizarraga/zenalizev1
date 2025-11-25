@@ -1,0 +1,423 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import {
+  Download,
+  TrendingUp,
+  TrendingDown,
+  Calendar,
+} from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import {
+  LineChart as RechartsLineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts"
+import { useFetch } from "@/lib/hooks"
+import { Estadisticas, ResumenDiario } from "@/lib/types"
+
+type Metrica = "temperatura" | "humedad" | "calidad"
+
+export default function HistorialPage() {
+  const [metricaSeleccionada, setMetricaSeleccionada] = useState<Metrica>("calidad")
+  const [paginaActual, setPaginaActual] = useState(1)
+  const itemsPorPagina = 10
+
+  // Calcular rango de fechas (últimos 30 días)
+  const hoy = new Date()
+  const hace30Dias = new Date(hoy.getTime() - 30 * 24 * 60 * 60 * 1000)
+  const inicio = hace30Dias.toISOString().split("T")[0]
+  const fin = hoy.toISOString().split("T")[0]
+
+  const { data, loading } = useFetch<{
+    estadisticas: Estadisticas
+    resumenDiario: ResumenDiario[]
+  }>(`/api/estadisticas?inicio=${inicio}&fin=${fin}`)
+
+  const estadoEmoji = {
+    bien: "😊",
+    regular: "😐",
+    mal: "😞",
+  }
+
+  const getMetricaData = () => {
+    if (!data) return []
+
+    return data.resumenDiario.map((dia) => ({
+      fecha: new Date(dia.fecha).toLocaleDateString("es-ES", {
+        day: "2-digit",
+        month: "short",
+      }),
+      valor:
+        metricaSeleccionada === "temperatura"
+          ? dia.temp_promedio
+          : metricaSeleccionada === "humedad"
+          ? dia.humedad_promedio
+          : dia.calidad,
+      fechaCompleta: dia.fecha,
+    }))
+  }
+
+  const getMetricaConfig = () => {
+    switch (metricaSeleccionada) {
+      case "temperatura":
+        return {
+          nombre: "Temperatura",
+          unidad: "°C",
+          color: "#06B6D4",
+          tipo: "linea" as const,
+        }
+      case "humedad":
+        return {
+          nombre: "Humedad",
+          unidad: "%",
+          color: "#3B82F6",
+          tipo: "linea" as const,
+        }
+      case "calidad":
+        return {
+          nombre: "Calidad del Sueño",
+          unidad: "/100",
+          color: "#F59E0B",
+          tipo: "barra" as const,
+        }
+    }
+  }
+
+  const exportarCSV = () => {
+    if (!data) return
+
+    const headers = [
+      "Fecha",
+      "Calidad",
+      "Temperatura Prom",
+      "Humedad Prom",
+      "Estado Ánimo",
+    ]
+    const rows = data.resumenDiario.map((dia) => [
+      dia.fecha,
+      dia.calidad,
+      dia.temp_promedio.toFixed(1),
+      dia.humedad_promedio.toFixed(0),
+      dia.estado_animo || "N/A",
+    ])
+
+    const csv = [
+      headers.join(","),
+      ...rows.map((row) => row.join(",")),
+    ].join("\n")
+
+    const blob = new Blob([csv], { type: "text/csv" })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `zenalyze-historial-${inicio}-${fin}.csv`
+    a.click()
+    window.URL.revokeObjectURL(url)
+  }
+
+  const metricaConfig = getMetricaConfig()
+  const metricaData = getMetricaData()
+
+  // Paginación
+  const totalPaginas = data
+    ? Math.ceil(data.resumenDiario.length / itemsPorPagina)
+    : 0
+  const datosPaginados = data
+    ? data.resumenDiario.slice(
+        (paginaActual - 1) * itemsPorPagina,
+        paginaActual * itemsPorPagina
+      )
+    : []
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-slate-600">Cargando historial...</div>
+      </div>
+    )
+  }
+
+  if (!data) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-slate-600">No hay datos disponibles</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Historial</h1>
+          <p className="text-slate-600">
+            Datos del {inicio} al {fin}
+          </p>
+        </div>
+        <Button onClick={exportarCSV} className="flex items-center space-x-2">
+          <Download className="h-4 w-4" />
+          <span>Exportar CSV</span>
+        </Button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-slate-600">Promedio del periodo</span>
+              <Calendar className="h-5 w-5 text-primary" />
+            </div>
+            <p className="text-3xl font-bold text-slate-900 font-mono">
+              {data.estadisticas.promedio_calidad}
+              <span className="text-lg text-slate-500">/100</span>
+            </p>
+            <p className="text-xs text-slate-500 mt-1">Calidad del sueño</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-slate-600">Mejor día</span>
+              <TrendingUp className="h-5 w-5 text-success" />
+            </div>
+            <p className="text-3xl font-bold text-slate-900 font-mono">
+              {data.estadisticas.mejor_dia.valor}
+              <span className="text-lg text-slate-500">/100</span>
+            </p>
+            <p className="text-xs text-slate-500 mt-1">
+              {new Date(data.estadisticas.mejor_dia.fecha).toLocaleDateString(
+                "es-ES",
+                { day: "numeric", month: "long" }
+              )}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-slate-600">Peor día</span>
+              <TrendingDown className="h-5 w-5 text-error" />
+            </div>
+            <p className="text-3xl font-bold text-slate-900 font-mono">
+              {data.estadisticas.peor_dia.valor}
+              <span className="text-lg text-slate-500">/100</span>
+            </p>
+            <p className="text-xs text-slate-500 mt-1">
+              {new Date(data.estadisticas.peor_dia.fecha).toLocaleDateString(
+                "es-ES",
+                { day: "numeric", month: "long" }
+              )}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filtros */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <CardTitle>Evolución Histórica</CardTitle>
+            <div className="flex flex-wrap gap-2">
+              {(["calidad", "temperatura", "humedad"] as Metrica[]).map(
+                (metrica) => (
+                  <button
+                    key={metrica}
+                    onClick={() => setMetricaSeleccionada(metrica)}
+                    className={`
+                      px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                      ${
+                        metricaSeleccionada === metrica
+                          ? "bg-primary text-white"
+                          : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                      }
+                    `}
+                  >
+                    {metrica === "calidad"
+                      ? "Calidad Sueño"
+                      : metrica === "temperatura"
+                      ? "Temperatura"
+                      : "Humedad"}
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={350}>
+            {metricaConfig.tipo === "barra" ? (
+              <BarChart data={metricaData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                <XAxis
+                  dataKey="fecha"
+                  stroke="#64748B"
+                  style={{ fontSize: "12px" }}
+                />
+                <YAxis stroke="#64748B" style={{ fontSize: "12px" }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#FFF",
+                    border: "1px solid #E2E8F0",
+                    borderRadius: "8px",
+                    padding: "12px",
+                  }}
+                />
+                <Bar
+                  dataKey="valor"
+                  fill={metricaConfig.color}
+                  name={`${metricaConfig.nombre} (${metricaConfig.unidad})`}
+                  radius={[8, 8, 0, 0]}
+                />
+              </BarChart>
+            ) : (
+              <RechartsLineChart data={metricaData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                <XAxis
+                  dataKey="fecha"
+                  stroke="#64748B"
+                  style={{ fontSize: "12px" }}
+                />
+                <YAxis stroke="#64748B" style={{ fontSize: "12px" }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#FFF",
+                    border: "1px solid #E2E8F0",
+                    borderRadius: "8px",
+                    padding: "12px",
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="valor"
+                  stroke={metricaConfig.color}
+                  strokeWidth={2}
+                  dot={{ fill: metricaConfig.color, r: 4 }}
+                  name={`${metricaConfig.nombre} (${metricaConfig.unidad})`}
+                />
+              </RechartsLineChart>
+            )}
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Tabla de resumen */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Resumen Diario</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
+                    Fecha
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
+                    Calidad
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
+                    Temp. Prom.
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
+                    Hum. Prom.
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
+                    Estado Ánimo
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {datosPaginados.map((dia, index) => (
+                  <tr
+                    key={index}
+                    className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                  >
+                    <td className="py-3 px-4 text-sm text-slate-700">
+                      {new Date(dia.fecha).toLocaleDateString("es-ES", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-mono font-semibold text-slate-900">
+                          {dia.calidad}
+                        </span>
+                        <div className="w-16 bg-slate-200 rounded-full h-1.5">
+                          <div
+                            className="bg-warning h-1.5 rounded-full"
+                            style={{ width: `${dia.calidad}%` }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 font-mono text-sm text-slate-700">
+                      {dia.temp_promedio.toFixed(1)}°C
+                    </td>
+                    <td className="py-3 px-4 font-mono text-sm text-slate-700">
+                      {dia.humedad_promedio.toFixed(0)}%
+                    </td>
+                    <td className="py-3 px-4">
+                      {dia.estado_animo ? (
+                        <span className="text-2xl" title={dia.estado_animo}>
+                          {estadoEmoji[dia.estado_animo]}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-slate-400">N/A</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Paginación */}
+          {totalPaginas > 1 && (
+            <div className="flex items-center justify-between mt-6 pt-6 border-t border-slate-200">
+              <div className="text-sm text-slate-600">
+                Página {paginaActual} de {totalPaginas}
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPaginaActual((p) => Math.max(1, p - 1))}
+                  disabled={paginaActual === 1}
+                >
+                  Anterior
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setPaginaActual((p) => Math.min(totalPaginas, p + 1))
+                  }
+                  disabled={paginaActual === totalPaginas}
+                >
+                  Siguiente
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
