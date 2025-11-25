@@ -141,31 +141,35 @@ export default function HistorialPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-slate-600">Cargando historial...</div>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="relative"><div className="w-16 h-16 border-4 border-cyan-200 border-t-cyan-400 rounded-full animate-spin"></div><div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"><div className="w-8 h-8 bg-gradient-to-r from-green-400 to-blue-500 rounded-full animate-pulse"></div></div></div>
+          <p className="text-slate-300 font-medium">Cargando historial...</p>
+        </div>
       </div>
     )
   }
 
   if (!data) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-slate-600">No hay datos disponibles</div>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900">
+        <div className="text-slate-300">No hay datos disponibles</div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 p-4 md:p-8 lg:p-12">
+      <div className="max-w-screen-2xl mx-auto space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Historial</h1>
-          <p className="text-slate-600">
+          <h1 className="text-3xl font-bold text-white mb-2">Historial</h1>
+          <p className="text-slate-300">
             Datos del {inicio} al {fin}
           </p>
         </div>
-        <Button onClick={exportarCSV} className="flex items-center space-x-2">
+        <Button onClick={exportarCSV} className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600">
           <Download className="h-4 w-4" />
           <span>Exportar CSV</span>
         </Button>
@@ -173,31 +177,31 @@ export default function HistorialPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
+        <Card className="bg-slate-800/30 backdrop-blur-sm border-slate-700/50">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-slate-600">Promedio del periodo</span>
-              <Calendar className="h-5 w-5 text-primary" />
+              <span className="text-sm text-slate-300">Promedio del periodo</span>
+              <Calendar className="h-5 w-5 text-cyan-400" />
             </div>
-            <p className="text-3xl font-bold text-slate-900 font-mono">
+            <p className="text-3xl font-bold text-white font-mono">
               {data.estadisticas.promedio_calidad}
-              <span className="text-lg text-slate-500">/100</span>
+              <span className="text-lg text-slate-400">/100</span>
             </p>
-            <p className="text-xs text-slate-500 mt-1">Calidad del sueño</p>
+            <p className="text-xs text-slate-400 mt-1">Calidad ambiental</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-slate-800/30 backdrop-blur-sm border-slate-700/50">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-slate-600">Mejor día</span>
-              <TrendingUp className="h-5 w-5 text-success" />
+              <span className="text-sm text-slate-300">Mejor día</span>
+              <TrendingUp className="h-5 w-5 text-green-400" />
             </div>
-            <p className="text-3xl font-bold text-slate-900 font-mono">
+            <p className="text-3xl font-bold text-white font-mono">
               {data.estadisticas.mejor_dia.valor}
-              <span className="text-lg text-slate-500">/100</span>
+              <span className="text-lg text-slate-400">/100</span>
             </p>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-400 mt-1">
               {new Date(data.estadisticas.mejor_dia.fecha).toLocaleDateString(
                 "es-ES",
                 { day: "numeric", month: "long" }
@@ -206,17 +210,17 @@ export default function HistorialPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-slate-800/30 backdrop-blur-sm border-slate-700/50">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-slate-600">Peor día</span>
-              <TrendingDown className="h-5 w-5 text-error" />
+              <span className="text-sm text-slate-300">Peor día</span>
+              <TrendingDown className="h-5 w-5 text-red-400" />
             </div>
-            <p className="text-3xl font-bold text-slate-900 font-mono">
+            <p className="text-3xl font-bold text-white font-mono">
               {data.estadisticas.peor_dia.valor}
-              <span className="text-lg text-slate-500">/100</span>
+              <span className="text-lg text-slate-400">/100</span>
             </p>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-400 mt-1">
               {new Date(data.estadisticas.peor_dia.fecha).toLocaleDateString(
                 "es-ES",
                 { day: "numeric", month: "long" }
@@ -227,10 +231,10 @@ export default function HistorialPage() {
       </div>
 
       {/* Filtros */}
-      <Card>
+      <Card className="bg-slate-800/30 backdrop-blur-sm border-slate-700/50">
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <CardTitle>Evolución Histórica</CardTitle>
+            <CardTitle className="text-white">Evolución Histórica</CardTitle>
             <div className="flex flex-wrap gap-2">
               {(["calidad", "temperatura", "humedad"] as Metrica[]).map(
                 (metrica) => (
@@ -241,13 +245,13 @@ export default function HistorialPage() {
                       px-4 py-2 rounded-lg text-sm font-medium transition-colors
                       ${
                         metricaSeleccionada === metrica
-                          ? "bg-primary text-white"
-                          : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                          ? "bg-gradient-to-r from-green-500 to-blue-500 text-white"
+                          : "bg-slate-700/50 text-slate-300 border border-slate-600/50 hover:bg-slate-700"
                       }
                     `}
                   >
                     {metrica === "calidad"
-                      ? "Calidad Sueño"
+                      ? "Calidad"
                       : metrica === "temperatura"
                       ? "Temperatura"
                       : "Humedad"}
@@ -315,28 +319,28 @@ export default function HistorialPage() {
       </Card>
 
       {/* Tabla de resumen */}
-      <Card>
+      <Card className="bg-slate-800/30 backdrop-blur-sm border-slate-700/50">
         <CardHeader>
-          <CardTitle>Resumen Diario</CardTitle>
+          <CardTitle className="text-white">Resumen Diario</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-slate-200">
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
+                <tr className="border-b border-slate-700">
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-300">
                     Fecha
                   </th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-300">
                     Calidad
                   </th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-300">
                     Temp. Prom.
                   </th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-300">
                     Hum. Prom.
                   </th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-300">
                     Estado Ánimo
                   </th>
                 </tr>
@@ -345,9 +349,9 @@ export default function HistorialPage() {
                 {datosPaginados.map((dia, index) => (
                   <tr
                     key={index}
-                    className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                    className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors"
                   >
-                    <td className="py-3 px-4 text-sm text-slate-700">
+                    <td className="py-3 px-4 text-sm text-slate-200">
                       {new Date(dia.fecha).toLocaleDateString("es-ES", {
                         day: "2-digit",
                         month: "short",
@@ -356,21 +360,21 @@ export default function HistorialPage() {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center space-x-2">
-                        <span className="font-mono font-semibold text-slate-900">
+                        <span className="font-mono font-semibold text-white">
                           {dia.calidad}
                         </span>
-                        <div className="w-16 bg-slate-200 rounded-full h-1.5">
+                        <div className="w-16 bg-slate-700 rounded-full h-1.5">
                           <div
-                            className="bg-warning h-1.5 rounded-full"
+                            className="bg-gradient-to-r from-green-400 to-blue-500 h-1.5 rounded-full"
                             style={{ width: `${dia.calidad}%` }}
                           />
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 font-mono text-sm text-slate-700">
+                    <td className="py-3 px-4 font-mono text-sm text-slate-200">
                       {dia.temp_promedio.toFixed(1)}°C
                     </td>
-                    <td className="py-3 px-4 font-mono text-sm text-slate-700">
+                    <td className="py-3 px-4 font-mono text-sm text-slate-200">
                       {dia.humedad_promedio.toFixed(0)}%
                     </td>
                     <td className="py-3 px-4">
@@ -390,8 +394,8 @@ export default function HistorialPage() {
 
           {/* Paginación */}
           {totalPaginas > 1 && (
-            <div className="flex items-center justify-between mt-6 pt-6 border-t border-slate-200">
-              <div className="text-sm text-slate-600">
+            <div className="flex items-center justify-between mt-6 pt-6 border-t border-slate-700">
+              <div className="text-sm text-slate-300">
                 Página {paginaActual} de {totalPaginas}
               </div>
               <div className="flex space-x-2">
@@ -400,6 +404,7 @@ export default function HistorialPage() {
                   size="sm"
                   onClick={() => setPaginaActual((p) => Math.max(1, p - 1))}
                   disabled={paginaActual === 1}
+                  className="bg-slate-700/50 text-slate-300 border-slate-600 hover:bg-slate-700"
                 >
                   Anterior
                 </Button>
@@ -410,6 +415,7 @@ export default function HistorialPage() {
                     setPaginaActual((p) => Math.min(totalPaginas, p + 1))
                   }
                   disabled={paginaActual === totalPaginas}
+                  className="bg-slate-700/50 text-slate-300 border-slate-600 hover:bg-slate-700"
                 >
                   Siguiente
                 </Button>
@@ -418,6 +424,7 @@ export default function HistorialPage() {
           )}
         </CardContent>
       </Card>
+    </div>
     </div>
   )
 }

@@ -4,14 +4,18 @@ import { SensorData } from "@/lib/types"
 
 export async function GET() {
   try {
-    // Obtener el registro más reciente de sensor_temp
+    // Obtener el registro más reciente de la tabla lecturas
     const result = await pool.query(`
       SELECT
-        temperature,
-        humidity,
-        recorded_at as timestamp
-      FROM sensor_temp
-      ORDER BY recorded_at DESC
+        temperatura,
+        humedad,
+        luz,
+        co2_estimado,
+        movimiento,
+        ruido,
+        timestamp
+      FROM lecturas
+      ORDER BY timestamp DESC
       LIMIT 1
     `)
 
@@ -24,15 +28,13 @@ export async function GET() {
 
     const latestData = result.rows[0]
 
-    // Datos mock para sensores no implementados aún
-    // Puedes agregar estas columnas a la tabla cuando tengas los sensores
     const data: SensorData = {
-      temperatura: latestData.temperature,
-      humedad: latestData.humidity,
-      co2: 420 + Math.random() * 50 - 25, // Mock hasta implementar sensor
-      luz: 340 + Math.random() * 100 - 50, // Mock hasta implementar sensor
-      movimiento: Math.random() > 0.7, // Mock hasta implementar sensor
-      ruido: Math.random() > 0.8, // Mock hasta implementar sensor
+      temperatura: parseFloat(latestData.temperatura),
+      humedad: parseFloat(latestData.humedad),
+      co2: latestData.co2_estimado || 0,
+      luz: latestData.luz || 0,
+      movimiento: latestData.movimiento,
+      ruido: latestData.ruido,
       timestamp: latestData.timestamp,
     }
 

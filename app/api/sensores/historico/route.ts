@@ -23,27 +23,58 @@ export async function GET(request: NextRequest) {
         break
     }
 
-    // Calcular timestamp de inicio
-    const startTime = new Date(Date.now() - hours * 60 * 60 * 1000)
+    // Primero verificar si hay datos recientes
+    const checkRecent = await pool.query(`
+      SELECT MAX(timestamp) as ultima_lectura
+      FROM lecturas
+    `)
 
-    // Obtener datos reales de la base de datos
+    const ultimaLectura = checkRecent.rows[0]?.ultima_lectura
+    if (!ultimaLectura) {
+      return NextResponse.json({ datos: [] })
+    }
+
+    // Calcular timestamp de inicio desde la última lectura
+    const ultimaLecturaDate = new Date(ultimaLectura)
+    const startTime = new Date(ultimaLecturaDate.getTime() - hours * 60 * 60 * 1000)
+
+    // Determinar el intervalo de agrupación según el período
+    let intervalo = 'minute' // Para 6h
+    let maxPuntos = 360 // 6h * 60min
+
+    if (hours >= 24 && hours < 168) {
+      intervalo = 'hour' // Para 24h (1 punto por hora)
+      maxPuntos = 24
+    } else if (hours >= 168 && hours < 720) {
+      intervalo = 'hour' // Para 7d (1 punto cada 2 horas)
+      maxPuntos = 84
+    } else if (hours >= 720) {
+      intervalo = 'day' // Para 30d (1 punto por día)
+      maxPuntos = 30
+    }
+
+    // Obtener datos agregados para mejorar rendimiento
     const result = await pool.query(`
       SELECT
-        temperature as temperatura,
-        humidity as humedad,
-        recorded_at as timestamp
-      FROM sensor_temp
-      WHERE recorded_at >= $1
-      ORDER BY recorded_at ASC
-    `, [startTime])
+        date_trunc($1, timestamp) as timestamp,
+        AVG(temperatura) as temperatura,
+        AVG(humedad) as humedad,
+        AVG(luz) as luz,
+        AVG(co2_estimado) as co2_estimado
+      FROM lecturas
+      WHERE timestamp >= $2
+      GROUP BY date_trunc($1, timestamp)
+      ORDER BY timestamp ASC
+      LIMIT $3
+    `, [intervalo, startTime, maxPuntos])
 
-    // Agregar datos mock para sensores no implementados
+    // Convertir los datos de la base de datos
     const datos: HistoricalData[] = result.rows.map((row) => ({
       timestamp: row.timestamp,
-      temperatura: row.temperatura,
-      humedad: row.humedad,
-      co2: 420 + Math.random() * 50 - 25, // Mock
-      luz: 340 + Math.random() * 100 - 50, // Mock
+      temperatura: parseFloat(row.temperatura),
+      humedad: parseFloat(row.humedad),
+      co2: Math.round(row.co2_estimado) || 0,
+      luz: Math.round(row.luz) || 0,
     }))
 
     return NextResponse.json({ datos })

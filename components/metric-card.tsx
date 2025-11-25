@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 interface MetricCardProps {
   title: string;
-  value: string;
+  value: string | number;
   unit: string;
   icon: LucideIcon;
   status: "success" | "warning" | "error" | undefined;

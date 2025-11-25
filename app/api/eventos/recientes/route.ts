@@ -1,37 +1,44 @@
 import { NextResponse } from "next/server"
+import pool from "@/lib/db"
 import { Evento } from "@/lib/types"
 
-// Genera eventos mock
-function generateMockEvents(): Evento[] {
-  const eventos: Evento[] = []
-  const now = new Date()
-
-  const eventosTemplates = [
-    { tipo: "movement" as const, desc: "Movimiento detectado en habitación" },
-    { tipo: "noise" as const, desc: "Nivel de ruido elevado" },
-    { tipo: "threshold" as const, desc: "CO2 superó umbral recomendado" },
-    { tipo: "threshold" as const, desc: "Temperatura fuera de rango óptimo" },
-    { tipo: "movement" as const, desc: "Actividad registrada" },
-  ]
-
-  for (let i = 0; i < 10; i++) {
-    const template = eventosTemplates[i % eventosTemplates.length]
-    const timestamp = new Date(now.getTime() - i * 30 * 60 * 1000) // Cada 30 min
-
-    eventos.push({
-      id: i + 1,
-      timestamp: timestamp.toISOString(),
-      tipo: template.tipo,
-      descripcion: template.desc,
-    })
+// Mapeo de tipos de eventos de DB a tipos de la UI
+function mapTipoEvento(tipoDb: string): "movement" | "noise" | "threshold" {
+  switch (tipoDb) {
+    case "movimiento":
+      return "movement"
+    case "ruido":
+      return "noise"
+    case "temperatura":
+    case "humedad":
+    case "co2":
+    case "luz":
+      return "threshold"
+    default:
+      return "threshold"
   }
-
-  return eventos
 }
 
 export async function GET() {
   try {
-    const eventos = generateMockEvents()
+    // Obtener los últimos 10 eventos de la tabla eventos
+    const result = await pool.query(`
+      SELECT
+        id,
+        timestamp,
+        tipo,
+        descripcion
+      FROM eventos
+      ORDER BY timestamp DESC
+      LIMIT 10
+    `)
+
+    const eventos: Evento[] = result.rows.map((row) => ({
+      id: row.id,
+      timestamp: row.timestamp,
+      tipo: mapTipoEvento(row.tipo),
+      descripcion: row.descripcion || `Evento de ${row.tipo}`,
+    }))
 
     return NextResponse.json({ eventos })
   } catch (error) {

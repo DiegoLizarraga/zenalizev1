@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react"
 
 export function useFetch<T>(url: string, interval?: number) {
-  const [data, setData] = useState<T | null>(null)
+  const [data, setData] = useState<T | undefined>(undefined)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
+  const [error, setError] = useState<Error | undefined>(undefined)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -14,7 +14,7 @@ export function useFetch<T>(url: string, interval?: number) {
         if (!response.ok) throw new Error("Error al obtener datos")
         const result = await response.json()
         setData(result)
-        setError(null)
+        setError(undefined)
       } catch (err) {
         setError(err as Error)
       } finally {
