@@ -1,0 +1,16 @@
+psycopg2-binary==2.9.10
+adafruit-circuitpython-dht==4.0.9
+adafruit-blinka==8.66.2
+python-dotenv==1.0.0
+adafruit_ads1x15
+psycopg2
+luma.lcd
+Pillow
+RPi.GPIO
+
+Flask
+adafruit-circuitpython-dht
+adafruit-circuitpython-ads1x15
+adafruit-circuitpython-rgb-display
+adafruit-blinka
+psycopg2-binary
