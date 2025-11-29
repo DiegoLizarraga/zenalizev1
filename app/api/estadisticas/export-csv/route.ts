@@ -30,10 +30,12 @@ function convertToCSV(data: any[]): string {
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
-    const limit = Math.min(parseInt(searchParams.get("limit") || "1000"), 10000) // Max 10000
+    const limit = Math.min(parseInt(searchParams.get("limit") || "1000"), 10000)
     const offset = parseInt(searchParams.get("offset") || "0")
 
-    // Obtener datos de lecturas (últimos registros)
+    console.log(`📥 Exportando CSV: limit=${limit}, offset=${offset}`)
+
+    // Obtener datos de lecturas
     const result = await pool.query(
       `
       SELECT
@@ -52,6 +54,8 @@ export async function GET(request: NextRequest) {
       `,
       [limit, offset]
     )
+
+    console.log(`📊 Registros encontrados: ${result.rows.length}`)
 
     if (result.rows.length === 0) {
       return NextResponse.json(
@@ -77,7 +81,8 @@ export async function GET(request: NextRequest) {
 
     const encuestasMap = new Map()
     encuestasResult.rows.forEach((row: any) => {
-      encuestasMap.set(row.fecha.toISOString().split("T")[0], row.estres)
+      const fecha = new Date(row.fecha).toISOString().split("T")[0]
+      encuestasMap.set(fecha, row.estres)
     })
 
     // Agregar estado de ánimo a cada registro
@@ -103,6 +108,8 @@ export async function GET(request: NextRequest) {
     // Convertir a CSV
     const csv = convertToCSV(enrichedData)
 
+    console.log(`✅ CSV generado: ${csv.split("\n").length} líneas`)
+
     // Crear nombre de archivo con fecha
     const now = new Date()
     const filename = `zenalyze-export-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}.csv`
@@ -115,10 +122,13 @@ export async function GET(request: NextRequest) {
         "Content-Disposition": `attachment; filename="${filename}"`,
       },
     })
-  } catch (error) {
-    console.error("Error al exportar CSV:", error)
+  } catch (error: any) {
+    console.error("❌ Error al exportar CSV:", error)
     return NextResponse.json(
-      { error: "Error al exportar datos" },
+      { 
+        error: "Error al exportar datos",
+        details: error.message 
+      },
       { status: 500 }
     )
   }
