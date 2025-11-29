@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 const navigation = [
   { name: "Dashboard", href: "/" },
   { name: "Sueño", href: "/sueno" },
-  { name: "Historial", href: "/historial" },
+  { name: "Historial", href: "/historial/" },
 ]
 
 interface HeaderProps {
