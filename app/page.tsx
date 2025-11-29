@@ -17,13 +17,15 @@ import { StatCard } from "@/components/stat-card"
 import { LineChart } from "@/components/line-chart"
 import { EstadoModal } from "@/components/estado-modal"
 import { EventBadge } from "@/components/event-badge"
+import { MandalaProVisualization } from "@/components/mandala-visualization-pro"
+import { ChatbotImproved } from "@/components/chatbot-improved"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { useFetch, useTimeAgo } from "@/lib/hooks"
+import { useFetchRealtime, useTimeAgo } from "@/lib/hooks-realtime"
 import { SensorData, HistoricalData, RegistroEstado, Evento, EstadoAnimo } from "@/lib/types"
 
 // =================================================================
-// LÓGICA Y COMPONENTE DEL CHATBOT MEJORADO CON GROQ
+// CHATBOT CON GROQ
 // =================================================================
 interface Message {
   id: string
@@ -32,7 +34,7 @@ interface Message {
   timestamp: Date
 }
 
-function ChatbotImproved({
+function ChatbotImprovedComponent({
   currentData,
   historicoData,
   estadoActual,
@@ -77,7 +79,6 @@ function ChatbotImproved({
     setLoading(true)
 
     try {
-      // Filtrar el historial para enviar solo los últimos 6 mensajes
       const recentHistory = messages
         .slice(-6)
         .map((msg) => ({
@@ -205,7 +206,7 @@ function ChatbotImproved({
 }
 
 // =================================================================
-// COMPONENTE DE MANDALA INTERACTIVO
+// MANDALA VISUALIZER
 // =================================================================
 function MandalaVisualizer({
   temperatura,
@@ -322,22 +323,47 @@ function MandalaVisualizer({
 }
 
 // =================================================================
-// COMPONENTE PRINCIPAL DEL DASHBOARD
+// DASHBOARD PRINCIPAL
 // =================================================================
 export default function Dashboard() {
   const [periodo, setPeriodo] = useState("24h")
-  const { data: currentData, loading: loadingCurrent } = useFetch<SensorData>(
+
+  // Usar hook mejorado con polling inteligente
+  const { 
+    data: currentData, 
+    loading: loadingCurrent,
+    lastUpdate: currentDataUpdate,
+    refresh: refreshCurrent 
+  } = useFetchRealtime<SensorData>(
     "/api/sensores/current",
-    30000
+    { interval: 15000 }
   )
-  const { data: historicoData, loading: loadingHistorico } = useFetch<{
-    datos: HistoricalData[]
-  }>(`/api/sensores/historico?periodo=${periodo}`)
-  const { data: estadoActual, loading: loadingEstado } =
-    useFetch<RegistroEstado>("/api/estado")
-  const { data: eventosData, loading: loadingEventos } = useFetch<{
-    eventos: Evento[]
-  }>("/api/eventos/recientes")
+
+  const { 
+    data: historicoData, 
+    loading: loadingHistorico,
+    refresh: refreshHistorico 
+  } = useFetchRealtime<{ datos: HistoricalData[] }>(
+    `/api/sensores/historico?periodo=${periodo}`,
+    { interval: 30000 }
+  )
+
+  const { 
+    data: estadoActual, 
+    loading: loadingEstado 
+  } = useFetchRealtime<RegistroEstado>(
+    "/api/estado",
+    { interval: 60000 }
+  )
+
+  const { 
+    data: eventosData, 
+    loading: loadingEventos 
+  } = useFetchRealtime<{ eventos: Evento[] }>(
+    "/api/eventos/recientes",
+    { interval: 20000 }
+  )
+
   const timeAgo = useTimeAgo(
     estadoActual?.timestamp || new Date().toISOString()
   )
@@ -347,20 +373,24 @@ export default function Dashboard() {
     if (temp > 24 && temp <= 26) return { status: "warning" as const, text: "Alta" }
     return { status: "error" as const, text: "Fuera de rango" }
   }
+
   const getHumedadStatus = (hum: number) => {
     if (hum >= 40 && hum <= 60) return { status: "success" as const, text: "Óptima" }
     if (hum > 60 && hum <= 70) return { status: "warning" as const, text: "Alta" }
     return { status: "error" as const, text: "Fuera de rango" }
   }
+
   const getCO2Status = (co2: number) => {
     if (co2 < 800) return { status: "success" as const, text: "Buena" }
     if (co2 < 1200) return { status: "warning" as const, text: "Moderada" }
     return { status: "error" as const, text: "Mala" }
   }
+
   const getLuzStatus = (luz: number) => {
     if (luz < 100) return { status: undefined, text: "Noche" }
     return { status: "success" as const, text: "Día" }
   }
+
   const handleEstadoSubmit = async (estado: EstadoAnimo) => {
     await fetch("/api/estado", {
       method: "POST",
@@ -369,6 +399,7 @@ export default function Dashboard() {
     })
     window.location.reload()
   }
+
   const estadoEmoji = { bien: "😊", regular: "😐", mal: "😞" }
   const estadoTexto = { bien: "Bien", regular: "Regular", mal: "Mal" }
   const sparklineData =
@@ -434,9 +465,7 @@ export default function Dashboard() {
               title="Luz"
               value={currentData?.luz.toFixed(0) || "0"}
               unit="lux"
-              icon={
-                currentData && currentData.luz < 100 ? Moon : Sun
-              }
+              icon={currentData && currentData.luz < 100 ? Moon : Sun}
               status={getLuzStatus(currentData?.luz || 0).status}
               statusText={getLuzStatus(currentData?.luz || 0).text}
               sparklineData={
@@ -444,6 +473,7 @@ export default function Dashboard() {
               }
             />
           </div>
+
           <Card className="overflow-hidden border-0 shadow-2xl bg-gradient-to-r from-green-500/10 via-blue-500/10 to-purple-500/10 backdrop-blur-md">
             <CardContent className="p-8">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
@@ -475,6 +505,7 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatCard
               label="Movimientos detectados hoy"
@@ -495,6 +526,7 @@ export default function Dashboard() {
               description="De 24 horas totales"
             />
           </div>
+
           <div className="space-y-4">
             <div className="flex justify-end">
               <div className="inline-flex rounded-xl bg-slate-800/50 backdrop-blur-sm shadow-lg p-1.5 gap-1 border border-slate-700/50">
@@ -539,6 +571,7 @@ export default function Dashboard() {
               />
             </div>
           </div>
+
           <Card className="overflow-hidden border border-slate-700/50 shadow-xl bg-slate-800/30 backdrop-blur-sm">
             <CardHeader className="bg-slate-900/50 border-b border-slate-700/50">
               <CardTitle className="text-2xl font-bold text-white">
@@ -571,25 +604,49 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Panel lateral con el mandala y el chatbot agrupados */}
+        {/* Panel lateral */}
         <div className="xl:col-span-1">
           <div className="sticky top-8 space-y-6">
+            {/* Mandala Pro o fallback */}
             <Card className="overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-blue-500 to-purple-500">
-                  Análisis Ambiental
-                </CardTitle>
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-blue-500 to-purple-500">
+                    Análisis Ambiental
+                  </CardTitle>
+                  <button
+                    onClick={refreshCurrent}
+                    className="text-xs text-slate-400 hover:text-cyan-400 transition-colors"
+                    title="Actualizar ahora"
+                  >
+                    🔄
+                  </button>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Actualizado: {currentDataUpdate?.toLocaleTimeString("es-ES")}
+                </p>
               </CardHeader>
               <CardContent className="p-6 pt-0">
-                <MandalaVisualizer
-                  temperatura={currentData?.temperatura || 0}
-                  humedad={currentData?.humedad || 0}
-                  co2={currentData?.co2 || 0}
-                  luz={currentData?.luz || 0}
-                />
+                {currentData ? (
+                  <MandalaProVisualization
+                    temperatura={currentData.temperatura || 0}
+                    humedad={currentData.humedad || 0}
+                    co2={currentData.co2 || 0}
+                    luz={currentData.luz || 0}
+                  />
+                ) : (
+                  <MandalaVisualizer
+                    temperatura={22}
+                    humedad={55}
+                    co2={450}
+                    luz={300}
+                  />
+                )}
               </CardContent>
             </Card>
-            <ChatbotImproved
+
+            {/* Chatbot */}
+            <ChatbotImprovedComponent
               currentData={currentData}
               historicoData={historicoData?.datos}
               estadoActual={estadoActual}

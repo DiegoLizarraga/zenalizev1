@@ -6,8 +6,7 @@ services:
     container_name: zenalyze
     ports:
       - "3003:3000"
-    env_file: .env  # ← ESTA LÍNEA ES CLAVE
+    env_file: .env  # ← Asegurar que está esto
     environment:
       NODE_ENV: production
-      # Las variables del .env se cargarán automáticamente
     restart: unless-stopped
